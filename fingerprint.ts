@@ -105,12 +105,12 @@ async function createDeviceFingerprint(): Promise<string> {
 
   // Define vertices for the triangle
   const vertices: Float32Array = new Float32Array([
-    0.0,
-    1.0, // Vertex 1
-    -1.0,
-    -1.0, // Vertex 2
-    1.0,
-    -1.0, // Vertex 3
+    0.5,
+    0.5, // Vertex 1
+    -0.7,
+    -0.7, // Vertex 2
+    0.2,
+    -0.2, // Vertex 3
   ]);
 
   // Create a buffer and put the vertices in it
@@ -150,8 +150,22 @@ async function createDeviceFingerprint(): Promise<string> {
     pixels
   );
 
-  // Hash the pixels data using SHA-256
-  const hashBuffer: ArrayBuffer = await crypto.subtle.digest("SHA-256", pixels);
+  // Collect information about the WebGL context
+  const info = [
+    gl!.getParameter(gl!.VERSION),
+    gl!.getParameter(gl!.SHADING_LANGUAGE_VERSION),
+    gl!.getParameter(gl!.VENDOR),
+    gl!.getParameter(gl!.RENDERER),
+    gl!.getSupportedExtensions()?.join(","),
+    pixels.toString(),
+  ];
+
+  // Cleanup: release the WebGL context
+  gl!.getExtension("WEBGL_lose_context")?.loseContext();
+
+  // Concatenate all the info and hash it using SHA-256
+  const data = new TextEncoder().encode(info.join("|"));
+  const hashBuffer: ArrayBuffer = await crypto.subtle.digest("SHA-256", data);
 
   // Convert the hashBuffer to a hex string
   const hashArray: Array<number> = Array.from(new Uint8Array(hashBuffer));
